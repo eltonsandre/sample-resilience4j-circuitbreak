@@ -1,0 +1,48 @@
+server:
+  port: 8084
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1KB
+
+spring:
+  profiles: dev
+  profiles.include:
+    - circuit-break
+    - ssl-enabled
+    - log-debug-mode
+  #    - internal-api-client
+
+  output.ansi.enabled: ALWAYS
+
+client.api:
+  url-base: https://localhost:8083
+  path-produtos: /produtos
+
+
+--- #SSL localhost
+spring.profiles: ssl-enabled
+server:
+  port: 8444
+  port.http: 8084
+  http2.enabled: true
+  ssl:
+    enabled: true
+    key-store-type: PKCS12
+    key-store: cacerts/localhost+2.p12
+    key-store-password: changeit
+
+--- #mocking test local
+spring.profiles: internal-api-client
+client.api:
+  url-base: https://localhost:8084
+  path-produtos: /internal-api/produtos
+
+---
+spring.profiles: log-debug-mode
+logging:
+  level:
+    com.github.eltonsandre: debug
+    io.github.resilience4j: info
+    org.springframework.cloud.openfeign: error
+    org.springframework.cloud.openfeign.support.SpringEncoder: debug

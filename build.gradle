@@ -1,0 +1,108 @@
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+plugins {
+    id 'java'
+    id 'idea'
+    id 'eclipse'
+    id 'application'
+    id 'org.springframework.boot' version '2.2.6.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.9.RELEASE'
+}
+
+group = 'com.github.eltonsandre.sample'
+version = '0.0.1-SNAPSHOT'
+mainClassName = "${group}.circuitbreak.CircuitbreakApplication"
+
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
+
+compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
+
+configurations {
+    developmentOnly
+    runtimeClasspath {
+        extendsFrom developmentOnly
+    }
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+ext {
+    set('springCloudVersion', "Hoxton.SR3")
+    set('resilience4jVersion', "1.3.1")
+    set('resilience4j.version', resilience4jVersion)
+}
+
+
+dependencies {
+    implementation 'com.github.eltonsandre.utils:mask-utils:1.0.1',
+            'org.springdoc:springdoc-openapi-ui:1.2.32',
+
+            'org.springframework.boot:spring-boot-starter-web',
+            'org.springframework.boot:spring-boot-starter-aop',
+            'org.springframework.boot:spring-boot-starter-actuator',
+            'org.springframework.boot:spring-boot-starter-validation',
+
+            'org.springframework.cloud:spring-cloud-starter-openfeign',
+            'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j',
+
+            "io.github.resilience4j:resilience4j-spring-boot2:${resilience4jVersion}",
+            "io.github.resilience4j:resilience4j-feign:${resilience4jVersion}"
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor',
+            'org.projectlombok:lombok',
+            'org.springframework.boot:spring-boot-configuration-processor'
+
+    compileOnly 'org.projectlombok:lombok'
+
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+springBoot {
+    buildInfo {
+        properties {
+            additional = [
+                    'spring.cloud.version': springCloudVersion,
+            ]
+        }
+    }
+}
+
+bootJar {
+    manifest {
+        attributes(
+                'Implementation-Title': rootProject.name,
+                'Implementation-Version': rootProject.version,
+                'Build-Timestamp': LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME),
+                'Build-Jdk': "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})",
+                'Build-OS': "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}",
+                'Created-By': "Gradle ${gradle.gradleVersion}",
+        )
+    }
+}

@@ -1,0 +1,9 @@
+{
+  "properties": [
+    {
+      "name": "exceptions.business",
+      "type": "java.lang.Class<java.lang.Throwable>[]",
+      "description": "Exception de negocio "
+    }
+  ]
+}

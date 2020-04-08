@@ -1,0 +1,135 @@
+management:
+  health:
+    diskspace.enabled: false
+    circuitbreakers.enabled: true
+    ratelimiters.enabled: false
+
+  metrics:
+    tags.application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        resilience4j.circuitbreaker.calls: true
+
+exceptions:
+  http-client-error: &http_client_error org.springframework.web.client.HttpClientErrorException
+  produto: &produto_error com.github.eltonsandre.sample.circuitbreak.exception.ProdutoException
+
+resilience4j:
+  configs:
+    default:
+      cancelRunningFuture: false
+      timeoutDuration: 2s
+  instances:
+    produtoApiClient:
+      baseConfig: default
+
+  #  CIRCUITBREAKER:
+  # ------------------
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 5
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.util.concurrent.TimeoutException
+          - java.io.IOException
+        ignoreExceptions:
+          - *http_client_error
+          - *produto_error
+    #          - org.springframework.web.client.HttpClientErrorException
+    #          - com.github.eltonsandre.sample.circuitbreak.exception.ProdutoException
+
+    instances:
+      produtoApiClient:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 10
+        permittedNumberOfCallsInHalfOpenState: 5
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50 #50% de 10 do eventConsumerBufferSize
+        eventConsumerBufferSize: 10
+        recordFailurePredicate: com.github.eltonsandre.sample.circuitbreak.exception.RecordFailurePredicate
+        recordExceptionsAsSuccess: &mark_success
+          - org.springframework.web.client.HttpClientErrorException
+          - com.github.eltonsandre.sample.circuitbreak.exception.ProdutoException
+        recordExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.util.concurrent.TimeoutException
+          - java.io.IOException
+        ignoreExceptions:
+          - org.springframework.web.client.HttpClientErrorException
+          - com.github.eltonsandre.sample.circuitbreak.exception.ProdutoException
+
+
+  #  RETRY:
+  # ------------------
+  retry:
+    configs:
+      default:
+        maxRetryAttempts: 3
+        waitDuration: 1s
+        retryExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.util.concurrent.TimeoutException
+        ignoreExceptions:
+          - org.springframework.web.client.HttpClientErrorException
+          - com.github.eltonsandre.sample.circuitbreak.exception.ProdutoException
+
+    instances:
+      produtoApiClient:
+        baseConfig: default
+        maxRetryAttempts: 3
+
+
+  #  BULKHEAD:
+  # ------------------
+  bulkhead:
+    configs:
+      default:
+        maxConcurrentCalls: 100
+
+    instances:
+      produtoApiClient:
+        maxWaitDuration: 10ms
+        maxConcurrentCalls: 20
+
+
+  # RATELIMITER
+  # ------------------
+  ratelimiter:
+    configs:
+      default:
+        registerHealthIndicator: false
+        limitForPeriod: 10
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0
+        eventConsumerBufferSize: 100
+
+    instances:
+      produtoApiClient:
+        limitForPeriod: 6
+        limitRefreshPeriod: 1s
+        timeoutDuration: 3s
+
+  # thread-pool-bulkhead
+  thread-pool-bulkhead:
+    configs:
+      default:
+        maxThreadPoolSize: 4
+        coreThreadPoolSize: 2
+        queueCapacity: 2
+
+    instances:
+      produtoApiClient:
+        maxThreadPoolSize: 1
+        coreThreadPoolSize: 1
+        queueCapacity: 1
+
